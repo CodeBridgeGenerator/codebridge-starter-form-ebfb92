@@ -1,0 +1,135 @@
+import React, { useEffect, useState } from "react";
+import { connect } from "react-redux";
+import client from "../../services/restClient";
+import { Dialog } from "primereact/dialog";
+import { Button } from "primereact/button";
+import { InputText } from 'primereact/inputtext';
+import { Checkbox } from 'primereact/checkbox';
+
+
+
+const getSchemaValidationErrorsStrings = (errorObj) => {
+    let errMsg = [];
+    for (const key in errorObj.errors) {
+        if (Object.hasOwnProperty.call(errorObj.errors, key)) {
+            const element = errorObj.errors[key];
+            if (element?.message) {
+                errMsg.push(element.message);
+            }
+        }
+    }
+    return errMsg.length ? errMsg : errorObj.message ? errorObj.message : null;
+};
+
+const ProtectionCreateDialogComponent = (props) => {
+    const [_entity, set_entity] = useState({});
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    
+
+    useEffect(() => {
+        // replace this when there is a date field
+        // const init  = { todate : new Date(), from : new Date()};
+        // set_entity({...init});
+        set_entity({});
+    }, [props.show]);
+
+    const onSave = async () => {
+        let _data = {
+            rateLimiter: _entity.rateLimiter,
+            blocking: _entity.blocking,
+            throttling: _entity.throttling,
+            masking: _entity.masking,
+            redirect: _entity.redirect,
+            mirror: _entity.mirror,
+            ochestration: _entity.ochestration,
+        };
+
+        setLoading(true);
+
+        try {
+            
+        const result = await client.service("protection").create(_data);
+        props.onHide();
+        props.alert({ type: "success", title: "Create info", message: "Info protection created successfully" });
+        props.onCreateResult(result);
+        
+        } catch (error) {
+            console.log("error", error);
+            setError(getSchemaValidationErrorsStrings(error) || "Failed to create");
+            props.alert({ type: "error", title: "Create", message: "Failed to create" });
+        }
+        setLoading(false);
+    };
+
+    
+
+    const renderFooter = () => (
+        <div className="flex justify-content-end">
+            <Button label="save" className="p-button-text no-focus-effect" onClick={onSave} loading={loading} />
+            <Button label="close" className="p-button-text no-focus-effect p-button-secondary" onClick={props.onHide} />
+        </div>
+    );
+
+    const setValByKey = (key, val) => {
+        let new_entity = { ..._entity, [key]: val };
+        set_entity(new_entity);
+        setError("");
+    };
+
+    
+
+    return (
+        <Dialog header="Create" visible={props.show} closable={false} onHide={props.onHide} modal style={{ width: "40vw" }} className="min-w-max" footer={renderFooter()} resizable={false}>
+            <div role="protection-create-dialog-component">
+            <div>
+                <p className="m-0">Rate Limiter:</p>
+                <Checkbox checked={_entity?.rateLimiter} onChange={ (e) => setValByKey("rateLimiter", e.checked)}  ></Checkbox>
+            </div>
+            <div>
+                <p className="m-0">Blocking:</p>
+                <Checkbox checked={_entity?.blocking} onChange={ (e) => setValByKey("blocking", e.checked)}  ></Checkbox>
+            </div>
+            <div>
+                <p className="m-0">Throttling:</p>
+                <Checkbox checked={_entity?.throttling} onChange={ (e) => setValByKey("throttling", e.checked)}  ></Checkbox>
+            </div>
+            <div>
+                <p className="m-0">Masking:</p>
+                <Checkbox checked={_entity?.masking} onChange={ (e) => setValByKey("masking", e.checked)}  ></Checkbox>
+            </div>
+            <div>
+                <p className="m-0">Redirect:</p>
+                <Checkbox checked={_entity?.redirect} onChange={ (e) => setValByKey("redirect", e.checked)}  ></Checkbox>
+            </div>
+            <div>
+                <p className="m-0">Mirror:</p>
+                <Checkbox checked={_entity?.mirror} onChange={ (e) => setValByKey("mirror", e.checked)}  ></Checkbox>
+            </div>
+            <div>
+                <p className="m-0">Ochestration:</p>
+                <Checkbox checked={_entity?.ochestration} onChange={ (e) => setValByKey("ochestration", e.checked)}  ></Checkbox>
+            </div>
+                <small className="p-error">
+                    {Array.isArray(error)
+                        ? error.map((e, i) => (
+                              <p className="m-0" key={i}>
+                                  {e}
+                              </p>
+                          ))
+                        : error}
+                </small>
+            </div>
+        </Dialog>
+    );
+};
+
+const mapState = (state) => {
+    return {}
+};
+const mapDispatch = (dispatch) => ({
+    alert: (data) => dispatch.toast.alert(data),
+});
+
+export default connect(mapState, mapDispatch)(ProtectionCreateDialogComponent);
